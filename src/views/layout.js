@@ -70,7 +70,7 @@ function layout({ titulo, descricao, conteudo, ativo = '', config, horarios = []
 <title>${e(titulo)}</title>
 <meta name="description" content="${e(descricao)}">
 <link rel="canonical" href="${e(canonical)}">
-<meta name="theme-color" content="#101210">
+<meta name="theme-color" content="#0b100c">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="${e(config.nome)}">
 <meta property="og:title" content="${e(titulo)}">
@@ -81,7 +81,7 @@ function layout({ titulo, descricao, conteudo, ativo = '', config, horarios = []
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="image" href="/img/logo-pequeno.webp" fetchpriority="high">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
 <link rel="stylesheet" href="/css/site.css">
 <script>
   /* Marca que o JS está vivo antes da primeira pintura. Só com esta classe o CSS
@@ -92,14 +92,17 @@ function layout({ titulo, descricao, conteudo, ativo = '', config, horarios = []
 </script>
 ${estruturados}
 </head>
-<body>
+<body class="site-publico">
 <a class="pular-para-conteudo" href="#conteudo">Pular para o conteúdo</a>
+<div class="progresso-scroll" aria-hidden="true"><span></span></div>
+<div class="transicao-pagina" aria-hidden="true"><span>Game &amp; Cell</span></div>
 
 <header class="cabecalho">
   <div class="container cabecalho__barra">
     <a class="logo" href="/" aria-label="${e(config.nome)} — página inicial">
       <img class="logo__img" src="/img/logo-pequeno.webp" width="360" height="166"
            alt="${e(config.nome)} — ${e(config.assinatura)}" fetchpriority="high">
+      <span class="logo__contexto">Iguatu <i></i> CE</span>
     </a>
 
     <button class="nav-toggle" type="button" id="navToggle" aria-expanded="false" aria-controls="navPrincipal" aria-label="Abrir menu">
@@ -124,6 +127,8 @@ ${conteudo}
 </main>
 
 <footer class="rodape">
+  <img class="rodape__elemento rodape__elemento--controle" src="/img/controle.webp" width="560" height="455" alt="" aria-hidden="true" loading="lazy">
+  <img class="rodape__elemento rodape__elemento--celular" src="/img/celular.webp" width="460" height="660" alt="" aria-hidden="true" loading="lazy">
   <div class="container">
     <div class="rodape__grade">
       <div data-revelar>

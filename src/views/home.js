@@ -42,54 +42,64 @@ function home(db) {
 
   const conteudo = `
 <section class="hero hero--marca">
-  <!-- Elementos do logo soltos no fundo, com paralaxe. Decorativos: aria-hidden. -->
-  <div class="enfeite enfeite--controle flutua" data-parallax="0.10" aria-hidden="true">
-    <img src="/img/controle.webp" width="560" height="455" alt="" loading="lazy" decoding="async">
-  </div>
-  <div class="enfeite enfeite--celular flutua flutua--lento" data-parallax="-0.16" aria-hidden="true">
-    <img src="/img/celular.webp" width="460" height="660" alt="" loading="lazy" decoding="async">
-  </div>
-
+  <div class="hero__luz hero__luz--um" aria-hidden="true"></div>
+  <div class="hero__luz hero__luz--dois" aria-hidden="true"></div>
   <div class="container hero__grade hero__grade--marca">
     <div class="hero__conteudo">
-      <img class="hero__logo" src="/img/logo.webp" width="1000" height="461"
-           srcset="/img/logo-pequeno.webp 360w, /img/logo.webp 1000w"
-           sizes="(min-width: 1024px) 34rem, (min-width: 768px) 30rem, 22rem"
-           alt="${e(config.nome)} — ${e(config.assinatura)}" fetchpriority="high" data-entrada="zoom">
-
-      <p class="rotulo" data-entrada style="--atraso:120ms">
-        ${e(config.cidade)} — ${e(config.estado)} &middot; ${e(config.assinatura)}
+      <p class="hero__chapeu" data-entrada style="--atraso:80ms">
+        <span></span> Loja física em ${e(config.cidade)} — ${e(config.estado)}
       </p>
 
-      <h1 data-entrada style="--atraso:200ms">${e(config.propostaValor)}</h1>
+      <h1 data-entrada style="--atraso:160ms">${e(config.propostaValor)}</h1>
 
-      <p class="lead" data-entrada style="--atraso:280ms">${e(config.subtitulo)}</p>
+      <p class="lead" data-entrada style="--atraso:240ms">${e(config.subtitulo)}</p>
 
-      <ul class="hero__provas" data-entrada style="--atraso:360ms">
-        <li>${icon('escudo')} Original e lacrado</li>
-        <li>${icon('selo')} Nota fiscal e garantia</li>
-        <li>${icon('pin')} Loja física no centro</li>
-      </ul>
-
-      <div class="hero__acoes" data-entrada style="--atraso:440ms">
+      <div class="hero__acoes" data-entrada style="--atraso:320ms">
         <a class="btn btn--primario" href="/vitrine">${icon('busca', 'btn__icone')} Ver produtos e preços</a>
         <a class="btn btn--wa" href="${whatsapp(
           config.whatsapp,
           `Olá, ${config.nome}! Vim pelo site e queria tirar uma dúvida.`
         )}" rel="noopener">${icon('whatsapp', 'btn__icone')} Chamar no WhatsApp</a>
       </div>
+
+      <ul class="hero__provas" data-entrada style="--atraso:400ms">
+        <li>${icon('escudo')} Original e lacrado</li>
+        <li>${icon('selo')} Nota fiscal e garantia</li>
+        <li>${icon('pin')} Loja física no centro</li>
+      </ul>
     </div>
 
-    <div class="hero__foto" data-entrada="direita" style="--atraso:300ms">
-      ${imagemOu(
-        sobreLoja.fotos && sobreLoja.fotos[0],
-        `Fachada da ${config.nome} no centro de ${config.cidade}`,
-        'Suba a foto da fachada verde em /admin — nunca banco de imagens',
-        ' width="800" height="600"'
-      )}
+    <div class="hero__palco" data-entrada="direita" style="--atraso:220ms" data-palco>
+      <div class="hero__orbita hero__orbita--externa" aria-hidden="true"></div>
+      <div class="hero__orbita hero__orbita--interna" aria-hidden="true"></div>
+      <div class="hero__marca-visual">
+        <img src="/img/logo.webp" width="1000" height="461"
+             srcset="/img/logo-pequeno.webp 360w, /img/logo.webp 1000w"
+             sizes="(min-width: 1024px) 29rem, 20rem"
+             alt="${e(config.nome)} — ${e(config.assinatura)}" fetchpriority="high">
+      </div>
+      <img class="hero__elemento hero__elemento--controle" src="/img/controle.webp"
+           width="560" height="455" alt="" aria-hidden="true" data-parallax="0.07">
+      <img class="hero__elemento hero__elemento--celular" src="/img/celular.webp"
+           width="460" height="660" alt="" aria-hidden="true" data-parallax="-0.10">
+      <div class="hero__selo-visual" aria-hidden="true">
+        <strong>4 em 1</strong><span>games · celulares · acessórios · assistência</span>
+      </div>
     </div>
   </div>
+
+  <a class="hero__scroll" href="#frentes" aria-label="Rolar para conhecer a loja">
+    <span>Explore</span><i aria-hidden="true"></i>
+  </a>
 </section>
+
+<div class="faixa-movimento" aria-label="Games, celulares, acessórios e assistência técnica">
+  <div class="faixa-movimento__trilho" aria-hidden="true">
+    ${Array.from({ length: 2 }, () => `
+      <span>Games</span><i></i><span>Celulares</span><i></i><span>Acessórios</span><i></i><span>Assistência técnica</span><i></i><span>Torneios</span><i></i>
+    `).join('')}
+  </div>
+</div>
 
 <section class="secao" aria-labelledby="frentes">
   <div class="container">
@@ -103,11 +113,12 @@ function home(db) {
     <div class="frentes" data-revelar-grupo>
       ${frentes
         .map(
-          (f) => `<a class="frente" href="${f.href}">
-        <span style="color:var(--verde-limao);width:28px;height:28px;display:block">${icon(f.icone)}</span>
+          (f, i) => `<a class="frente" href="${f.href}">
+        <span class="frente__numero">0${i + 1}</span>
+        <span class="frente__icone">${icon(f.icone)}</span>
         <span class="frente__nome">${e(f.nome)}</span>
         <span class="frente__desc">${e(f.desc)}</span>
-        <span class="frente__seta">Ver mais &rarr;</span>
+        <span class="frente__seta">Explorar <b aria-hidden="true">&rarr;</b></span>
       </a>`
         )
         .join('\n      ')}
@@ -150,10 +161,17 @@ ${
       texto: 'Campeonato presencial com premiação. Ponto de venda que virou ponto de encontro.',
       id: 'torneio-home'
     })}
-    <div class="cartao" style="border-color:var(--verde-limao)" data-revelar="zoom">
-      <h3 class="cartao__titulo">${e(proximoTorneio.nome)} — ${e(proximoTorneio.jogo)}</h3>
-      <p class="lead">${e(proximoTorneio.premiacao)}</p>
-      <a class="btn btn--primario btn--sm" href="/torneios">${icon('trofeu', 'btn__icone')} Ver regulamento e se inscrever</a>
+    <div class="evento-destaque" data-revelar="zoom">
+      <div class="evento-destaque__conteudo">
+        <span class="evento-destaque__status"><i></i> Inscrições abertas</span>
+        <h3>${e(proximoTorneio.nome)} — ${e(proximoTorneio.jogo)}</h3>
+        <p>${e(proximoTorneio.premiacao)}</p>
+        <a class="btn btn--primario btn--sm" href="/torneios">${icon('trofeu', 'btn__icone')} Ver regulamento e se inscrever</a>
+      </div>
+      <div class="evento-destaque__visual" aria-hidden="true">
+        <span>Game on</span>
+        <img src="/img/controle.webp" width="560" height="455" alt="" loading="lazy">
+      </div>
     </div>
   </div>
 </section>`
@@ -186,6 +204,31 @@ ${
 </section>`
     : ''
 }
+
+<section class="secao secao--universo" aria-labelledby="universo-home">
+  <div class="container universo">
+    <div class="universo__visual" data-revelar="esquerda">
+      ${imagemOu(
+        sobreLoja.fotos && sobreLoja.fotos[0],
+        `Fachada da ${config.nome} no centro de ${config.cidade}`,
+        'A fachada verde da Game & Cell entra aqui quando a foto for adicionada no painel',
+        ' width="800" height="600" loading="lazy"'
+      )}
+      <img class="universo__celular" src="/img/celular.webp" width="460" height="660" alt="" aria-hidden="true" loading="lazy">
+    </div>
+    <div class="universo__conteudo" data-revelar="direita">
+      <p class="rotulo">Mais que uma loja</p>
+      <h2 id="universo-home">Tecnologia para comprar, cuidar e jogar.</h2>
+      <p class="lead">Um só endereço para escolher seu próximo aparelho, equipar seu setup, resolver um conserto e encontrar a comunidade gamer de Iguatu.</p>
+      <div class="universo__numeros">
+        <div><strong>4</strong><span>frentes no mesmo balcão</span></div>
+        <div><strong>1</strong><span>endereço no centro</span></div>
+        <div><strong>0</strong><span>enrolação para ver preço</span></div>
+      </div>
+      <a class="btn btn--contorno" href="/a-loja">Conheça a Game &amp; Cell ${icon('seta', 'btn__icone')}</a>
+    </div>
+  </div>
+</section>
 
 ${faixaContato(config, config.horarios)}
 `;

@@ -90,7 +90,7 @@
       if (y > window.innerHeight * 1.5) return; // fora de vista, não gasta cálculo
       camadas.forEach((el) => {
         const fator = parseFloat(el.dataset.parallax) || 0;
-        el.style.translate = `0 ${(y * fator).toFixed(1)}px`;
+        el.style.setProperty('--parallax-y', `${(y * fator).toFixed(1)}px`);
       });
     };
 
@@ -116,9 +116,14 @@
     if (!cabecalho) return;
 
     let pendente = false;
+    let anterior = window.scrollY;
     const atualizar = () => {
       pendente = false;
-      cabecalho.classList.toggle('rolado', window.scrollY > 8);
+      const atual = window.scrollY;
+      const menuAberto = document.querySelector('.nav.aberto');
+      cabecalho.classList.toggle('rolado', atual > 8);
+      cabecalho.classList.toggle('cabecalho--oculto', atual > 180 && atual > anterior + 3 && !menuAberto);
+      anterior = atual;
     };
 
     addEventListener(
@@ -134,15 +139,83 @@
     atualizar();
   }
 
+  /* ================================================================
+     Progresso, palco do hero e transição de saída entre páginas
+     ================================================================ */
+  function iniciarProgresso() {
+    const barra = document.querySelector('.progresso-scroll span');
+    if (!barra) return;
+
+    let pendente = false;
+    const atualizar = () => {
+      pendente = false;
+      const total = document.documentElement.scrollHeight - innerHeight;
+      const progresso = total > 0 ? Math.min(1, Math.max(0, scrollY / total)) : 0;
+      barra.style.transform = `scaleX(${progresso})`;
+    };
+
+    addEventListener('scroll', () => {
+      if (pendente) return;
+      pendente = true;
+      requestAnimationFrame(atualizar);
+    }, { passive: true });
+    addEventListener('resize', atualizar, { passive: true });
+    atualizar();
+  }
+
+  function iniciarPalcoHero() {
+    if (menosMovimento.matches || !matchMedia('(pointer: fine)').matches) return;
+    const palco = document.querySelector('[data-palco]');
+    if (!palco) return;
+
+    palco.addEventListener('pointermove', (ev) => {
+      const r = palco.getBoundingClientRect();
+      const x = (ev.clientX - r.left) / r.width - 0.5;
+      const y = (ev.clientY - r.top) / r.height - 0.5;
+      palco.style.setProperty('--palco-x', `${(x * 10).toFixed(2)}deg`);
+      palco.style.setProperty('--palco-y', `${(-y * 8).toFixed(2)}deg`);
+      palco.style.setProperty('--luz-x', `${((x + 0.5) * 100).toFixed(1)}%`);
+      palco.style.setProperty('--luz-y', `${((y + 0.5) * 100).toFixed(1)}%`);
+    });
+
+    palco.addEventListener('pointerleave', () => {
+      palco.style.setProperty('--palco-x', '0deg');
+      palco.style.setProperty('--palco-y', '0deg');
+      palco.style.setProperty('--luz-x', '50%');
+      palco.style.setProperty('--luz-y', '50%');
+    });
+  }
+
+  function iniciarTransicoesPagina() {
+    addEventListener('pageshow', () => document.body.classList.remove('saindo'));
+
+    document.addEventListener('click', (ev) => {
+      if (ev.defaultPrevented || ev.button !== 0 || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
+      const link = ev.target.closest('a[href]');
+      if (!link || link.target || link.hasAttribute('download')) return;
+
+      const destino = new URL(link.href, location.href);
+      if (destino.origin !== location.origin || destino.protocol !== location.protocol) return;
+      if (destino.pathname === location.pathname && destino.search === location.search && destino.hash) return;
+
+      ev.preventDefault();
+      document.body.classList.add('saindo');
+      setTimeout(() => location.assign(destino.href), menosMovimento.matches ? 0 : 320);
+    });
+  }
+
   iniciarAnimacoes();
   iniciarParallax();
   iniciarCabecalho();
+  iniciarProgresso();
+  iniciarPalcoHero();
+  iniciarTransicoesPagina();
 
   // Se a pessoa mudar a preferência de movimento com a página aberta, respeita na hora.
   menosMovimento.addEventListener('change', (ev) => {
     if (ev.matches) {
       document.documentElement.classList.remove('anim');
-      document.querySelectorAll('[data-parallax]').forEach((el) => (el.style.translate = ''));
+      document.querySelectorAll('[data-parallax]').forEach((el) => el.style.removeProperty('--parallax-y'));
     }
   });
 
