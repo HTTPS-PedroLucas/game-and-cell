@@ -29,11 +29,6 @@
       ...opcoes
     });
 
-    if (resp.status === 401) {
-      mostrarLogin();
-      throw new Error('sessao');
-    }
-
     const corpo = await resp.json().catch(() => ({}));
     if (!resp.ok) throw new Error(corpo.erro || 'Não deu certo. Tente de novo.');
     return corpo;
@@ -49,84 +44,6 @@
       el.hidden = true;
     }, 3600);
   }
-
-  /* ================================================================
-     Login
-     ================================================================ */
-  function mostrarLogin() {
-    $('#telaLogin').hidden = false;
-    $('#app').hidden = true;
-    $('#loginEmail')?.focus();
-  }
-
-  function mostrarApp() {
-    $('#telaLogin').hidden = true;
-    $('#app').hidden = false;
-  }
-
-  $('#formLogin').addEventListener('submit', async (ev) => {
-    ev.preventDefault();
-    const botao = ev.target.querySelector('button[type="submit"]');
-    const caixa = $('#loginAviso');
-    botao.disabled = true;
-    botao.textContent = 'Entrando...';
-    caixa.innerHTML = '';
-
-    try {
-      let resp;
-      try {
-        resp = await fetch('/api/admin/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: $('#loginEmail').value, senha: $('#loginSenha').value })
-        });
-      } catch (redeErr) {
-        // fetch só rejeita quando a requisição nem sai: servidor fora do ar,
-        // bloqueio de extensão/escudo, ou perda de conexão. Sem este aviso a
-        // tela ficava parada no login sem dizer nada.
-        caixa.innerHTML = `<div class="aviso aviso--erro">${ICONE.alerta}<span>
-          <strong>A requisição não chegou ao servidor.</strong><br>
-          Confira se o servidor está rodando (<code>npm start</code>) e se alguma extensão
-          ou escudo de privacidade está bloqueando este site. Detalhe: ${esc(redeErr.message)}
-        </span></div>`;
-        return;
-      }
-
-      const corpo = await resp.json().catch(() => ({}));
-
-      if (!resp.ok) {
-        caixa.innerHTML = `<div class="aviso aviso--erro">${ICONE.alerta}<span>${esc(corpo.erro || 'Erro no login.')}</span></div>`;
-        return;
-      }
-
-      $('#formLogin').reset();
-      mostrarApp();
-
-      try {
-        await carregar({ propagar: true });
-      } catch (err) {
-        // Senha certa, sessão recusada: o navegador não devolveu o cookie na
-        // requisição seguinte. Antes isso voltava ao login sem explicar nada,
-        // e parecia — de fora — que a senha estava errada.
-        if (err.message !== 'sessao') throw err;
-        caixa.innerHTML = `<div class="aviso aviso--erro">${ICONE.alerta}<span>
-          <strong>A senha está certa, mas a sessão não se manteve.</strong><br>
-          Seu navegador aceitou o login e não devolveu o cookie na requisição seguinte.
-          Verifique se cookies estão bloqueados para este site, se há uma extensão de
-          privacidade ativa, ou se você está numa janela anônima com cookies desativados.
-        </span></div>`;
-      }
-    } finally {
-      botao.disabled = false;
-      botao.textContent = 'Entrar';
-    }
-  });
-
-  $('#btnSair').addEventListener('click', async () => {
-    await fetch('/api/admin/logout', { method: 'POST' });
-    dados = null;
-    mostrarLogin();
-  });
 
   /* ================================================================
      Abas
@@ -1112,13 +1029,7 @@
      Início
      ================================================================ */
   (async function iniciar() {
-    try {
-      await api('/me');
-      mostrarApp();
-      esqueleto();
-      await carregar();
-    } catch {
-      mostrarLogin();
-    }
+    esqueleto();
+    await carregar();
   })();
 })();
