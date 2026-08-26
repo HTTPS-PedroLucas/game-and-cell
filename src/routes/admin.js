@@ -1,10 +1,9 @@
-/** API do painel administrativo. Tudo aqui exige sessão, menos o login. */
+/** API do painel administrativo com acesso livre para ambiente de teste. */
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const store = require('../lib/store');
-const { autenticar, exigirLogin, definirCookie, limparCookie, registrar } = require('../lib/auth');
 const { slugify } = require('../lib/helpers');
 
 const router = express.Router();
@@ -39,55 +38,7 @@ const upload = multer({
   }
 });
 
-/* ------------------------------------------------------------------ */
-/* Sessão                                                              */
-/* ------------------------------------------------------------------ */
-const tentativas = new Map();
-
-router.post('/login', async (req, res) => {
-  const ip = req.ip || 'desconhecido';
-  const agora = Date.now();
-  const recentes = (tentativas.get(ip) || []).filter((t) => agora - t < 15 * 60_000);
-  if (recentes.length >= 8) {
-    registrar('LOGIN 429', `${ip} — bloqueado por excesso de tentativas`);
-    return res.status(429).json({ erro: 'Muitas tentativas. Espere 15 minutos.' });
-  }
-
-  const { email, senha } = req.body || {};
-  if (!email || !senha) {
-    registrar('LOGIN 400', 'requisição chegou sem e-mail ou sem senha');
-    return res.status(400).json({ erro: 'Informe e-mail e senha.' });
-  }
-
-  const sessao = await autenticar(email, senha);
-  if (!sessao) {
-    recentes.push(agora);
-    tentativas.set(ip, recentes);
-    registrar('LOGIN NEGADO', `${email} — senha não confere (tentativa ${recentes.length} de 8)`);
-    return res.status(401).json({ erro: 'E-mail ou senha incorretos.' });
-  }
-
-  tentativas.delete(ip);
-  const cookieSeguro = definirCookie(req, res, sessao.token);
-  registrar(
-    'LOGIN OK',
-    `${sessao.usuario.email} — cookie enviado (secure=${cookieSeguro}, ` +
-      `origem=${req.headers.origin || req.headers.host})`
-  );
-  res.json({ ok: true, usuario: sessao.usuario });
-});
-
-router.post('/logout', (req, res) => {
-  limparCookie(req, res);
-  res.json({ ok: true });
-});
-
-router.get('/me', exigirLogin, (req, res) => {
-  res.json({ usuario: { nome: req.usuario.nome, email: req.usuario.email } });
-});
-
-// Tudo daqui pra baixo exige sessão.
-router.use(exigirLogin);
+/* Acesso livre intencional nesta branch de teste. */
 
 /* ------------------------------------------------------------------ */
 /* Leitura geral                                                       */
