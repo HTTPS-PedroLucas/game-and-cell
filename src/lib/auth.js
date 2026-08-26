@@ -89,19 +89,39 @@ function exigirLogin(req, res, next) {
     req.usuario = jwt.verify(token, segredo());
     next();
   } catch (err) {
-    res.clearCookie(COOKIE);
+    limparCookie(req, res);
     registrar('BLOQUEADO', `${req.method} ${req.originalUrl} — cookie presente mas inválido (${err.message})`);
     return res.status(401).json({ erro: 'Sessão inválida. Faça login novamente.' });
   }
 }
 
-function definirCookie(res, token) {
-  res.cookie(COOKIE, token, {
+function opcoesCookie(req) {
+  const protocoloEncaminhado = String(req.get('x-forwarded-proto') || '')
+    .split(',')[0]
+    .trim()
+    .toLowerCase();
+
+  return {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    // O protocolo real decide o atributo Secure. Assim HTTPS continua protegido,
+    // enquanto localhost e previews HTTP não perdem o cookie logo após o login.
+    secure: Boolean(req.secure || protocoloEncaminhado === 'https'),
+    path: '/'
+  };
+}
+
+function definirCookie(req, res, token) {
+  const opcoes = opcoesCookie(req);
+  res.cookie(COOKIE, token, {
+    ...opcoes,
     maxAge: 12 * 60 * 60 * 1000
   });
+  return opcoes.secure;
+}
+
+function limparCookie(req, res) {
+  res.clearCookie(COOKIE, opcoesCookie(req));
 }
 
 module.exports = {
@@ -114,5 +134,6 @@ module.exports = {
   exigirLogin,
   registrar,
   definirCookie,
+  limparCookie,
   segredo
 };

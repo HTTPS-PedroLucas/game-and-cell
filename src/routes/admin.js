@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const store = require('../lib/store');
-const { autenticar, exigirLogin, definirCookie, registrar, COOKIE } = require('../lib/auth');
+const { autenticar, exigirLogin, definirCookie, limparCookie, registrar } = require('../lib/auth');
 const { slugify } = require('../lib/helpers');
 
 const router = express.Router();
@@ -68,17 +68,17 @@ router.post('/login', async (req, res) => {
   }
 
   tentativas.delete(ip);
-  definirCookie(res, sessao.token);
+  const cookieSeguro = definirCookie(req, res, sessao.token);
   registrar(
     'LOGIN OK',
-    `${sessao.usuario.email} — cookie enviado (secure=${process.env.NODE_ENV === 'production'}, ` +
+    `${sessao.usuario.email} — cookie enviado (secure=${cookieSeguro}, ` +
       `origem=${req.headers.origin || req.headers.host})`
   );
   res.json({ ok: true, usuario: sessao.usuario });
 });
 
-router.post('/logout', (_req, res) => {
-  res.clearCookie(COOKIE);
+router.post('/logout', (req, res) => {
+  limparCookie(req, res);
   res.json({ ok: true });
 });
 
