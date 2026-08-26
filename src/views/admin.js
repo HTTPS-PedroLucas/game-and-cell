@@ -33,35 +33,8 @@ function paginaAdmin(config) {
 </head>
 <body class="admin">
 
-<!-- ---------------- Login ---------------- -->
-<div class="login" id="telaLogin" hidden>
-  <form class="login__caixa" id="formLogin" novalidate>
-    <div class="login__marca">
-      <img src="/img/logo-pequeno.webp" width="360" height="166" alt="${e(config.nome)}" style="height:56px;margin-inline:auto">
-      <span class="logo__assinatura">Painel do administrador</span>
-    </div>
-
-    <div class="campo">
-      <label for="loginEmail">E-mail</label>
-      <input type="email" id="loginEmail" name="email" required autocomplete="username" autocapitalize="none">
-    </div>
-
-    <div class="campo">
-      <label for="loginSenha">Senha</label>
-      <input type="password" id="loginSenha" name="senha" required autocomplete="current-password">
-    </div>
-
-    <button class="btn btn--primario btn--bloco" type="submit">Entrar</button>
-    <div id="loginAviso" role="alert" aria-live="assertive"></div>
-
-    <p class="small muted">
-      Primeiro acesso? Rode <code>npm run seed</code> no servidor para criar o administrador.
-    </p>
-  </form>
-</div>
-
 <!-- ---------------- Painel ---------------- -->
-<div class="admin-app" id="app" hidden>
+<div class="admin-app" id="app">
   <header class="admin-topo">
     <div class="admin-topo__marca">
       <img class="logo__img" src="/img/logo-pequeno.webp" width="360" height="166" alt="${e(config.nome)}" style="height:30px">
@@ -69,7 +42,6 @@ function paginaAdmin(config) {
     </div>
     <div class="admin-topo__acoes">
       <a class="btn btn--contorno btn--sm" href="/" target="_blank" rel="noopener">Ver o site</a>
-      <button class="btn btn--contorno btn--sm" type="button" id="btnSair">Sair</button>
     </div>
   </header>
 
