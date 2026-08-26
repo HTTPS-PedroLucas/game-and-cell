@@ -35,34 +35,51 @@ function paginaAdmin(config) {
 
 <!-- ---------------- Painel ---------------- -->
 <div class="admin-app" id="app">
-  <header class="admin-topo">
-    <div class="admin-topo__marca">
-      <img class="logo__img" src="/img/logo-pequeno.webp" width="360" height="166" alt="${e(config.nome)}" style="height:30px">
-      <span class="admin-tag">Painel</span>
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar__marca">
+      <img src="/img/logo-pequeno.webp" width="360" height="166" alt="${e(config.nome)}">
+      <div>
+        <span>Administração</span>
+        <small>Universo da tecnologia</small>
+      </div>
     </div>
-    <div class="admin-topo__acoes">
-      <a class="btn btn--contorno btn--sm" href="/" target="_blank" rel="noopener">Ver o site</a>
+
+    <nav class="admin-abas" aria-label="Seções do painel">
+      ${ABAS.map(
+        (a, i) =>
+          `<button class="admin-aba" type="button" role="tab" data-aba="${a.id}"
+                   id="aba-${a.id}" aria-controls="painel-${a.id}" aria-selected="${i === 0}">
+            <span class="admin-aba__icone">${icon(a.icone)}</span><span>${e(a.rotulo)}</span>
+          </button>`
+      ).join('\n      ')}
+    </nav>
+
+    <div class="admin-sidebar__rodape">
+      <span class="admin-sidebar__status" aria-hidden="true"></span>
+      <div><strong>Painel online</strong><small>Alterações publicadas na hora</small></div>
     </div>
-  </header>
+  </aside>
 
-  <nav class="admin-abas" aria-label="Seções do painel">
-    ${ABAS.map(
-      (a, i) =>
-        `<button class="admin-aba" type="button" role="tab" data-aba="${a.id}"
-                 id="aba-${a.id}" aria-controls="painel-${a.id}" aria-selected="${i === 0}">
-          <span class="admin-aba__icone">${icon(a.icone)}</span>${e(a.rotulo)}
-        </button>`
-    ).join('\n    ')}
-  </nav>
+  <section class="admin-workspace">
+    <header class="admin-topo">
+      <div class="admin-topo__titulo">
+        <span>Game &amp; Cell</span>
+        <strong>Painel de controle</strong>
+      </div>
+      <div class="admin-topo__acoes">
+        <a class="btn btn--contorno btn--sm" href="/" target="_blank" rel="noopener">Ver o site</a>
+      </div>
+    </header>
 
-  <main class="admin-corpo">
-    ${ABAS.map(
-      (a, i) =>
-        `<section class="admin-painel" id="painel-${a.id}" role="tabpanel" aria-labelledby="aba-${a.id}"${
-          i === 0 ? '' : ' hidden'
-        }></section>`
-    ).join('\n    ')}
-  </main>
+    <main class="admin-corpo">
+      ${ABAS.map(
+        (a, i) =>
+          `<section class="admin-painel" id="painel-${a.id}" role="tabpanel" aria-labelledby="aba-${a.id}"${
+            i === 0 ? '' : ' hidden'
+          }></section>`
+      ).join('\n      ')}
+    </main>
+  </section>
 </div>
 
 <!-- Diálogo de edição, reaproveitado por todas as listas -->
