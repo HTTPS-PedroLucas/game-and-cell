@@ -108,6 +108,7 @@
 
 .admin-corpo { flex: 1; padding: var(--s-6) var(--s-4) var(--s-16); max-width: 1200px; width: 100%; margin-inline: auto; }
 .admin-painel { display: grid; gap: var(--s-6); }
+.admin-painel[hidden] { display: none; }
 
 .admin-secao__topo {
   display: flex;
