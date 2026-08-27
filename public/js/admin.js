@@ -29,6 +29,11 @@
       ...opcoes
     });
 
+    if (resp.status === 401) {
+      mostrarLogin();
+      throw new Error('sessao');
+    }
+
     const corpo = await resp.json().catch(() => ({}));
     if (!resp.ok) throw new Error(corpo.erro || 'Não deu certo. Tente de novo.');
     return corpo;
@@ -44,6 +49,62 @@
       el.hidden = true;
     }, 3600);
   }
+
+  /* ================================================================
+     Login
+     ================================================================ */
+  function mostrarLogin() {
+    $('#telaLogin').hidden = false;
+    $('#app').hidden = true;
+    $('#loginEmail')?.focus();
+  }
+
+  function mostrarApp() {
+    $('#telaLogin').hidden = true;
+    $('#app').hidden = false;
+  }
+
+  $('#formLogin').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const botao = ev.target.querySelector('button[type="submit"]');
+    const caixa = $('#loginAviso');
+    botao.disabled = true;
+    botao.textContent = 'Entrando...';
+    caixa.innerHTML = '';
+
+    try {
+      const resp = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: $('#loginEmail').value, senha: $('#loginSenha').value })
+      });
+      const corpo = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        caixa.innerHTML = `<div class="aviso aviso--erro">${ICONE.alerta}<span>${esc(
+          corpo.erro || 'Erro no login.'
+        )}</span></div>`;
+        return;
+      }
+      $('#formLogin').reset();
+      mostrarApp();
+      await carregar({ propagar: true });
+    } catch (err) {
+      if (err.message !== 'sessao') {
+        caixa.innerHTML = `<div class="aviso aviso--erro">${ICONE.alerta}<span>${esc(
+          err.message || 'Não foi possível conectar ao servidor.'
+        )}</span></div>`;
+      }
+    } finally {
+      botao.disabled = false;
+      botao.textContent = 'Entrar';
+    }
+  });
+
+  $('#btnSair').addEventListener('click', async () => {
+    await fetch('/api/admin/logout', { method: 'POST' });
+    dados = null;
+    mostrarLogin();
+  });
 
   /* ================================================================
      Abas
@@ -106,6 +167,10 @@
     const form = new FormData();
     form.append('imagem', comprimido);
     const resp = await fetch('/api/admin/upload', { method: 'POST', body: form });
+    if (resp.status === 401) {
+      mostrarLogin();
+      throw new Error('sessao');
+    }
     const corpo = await resp.json().catch(() => ({}));
     if (!resp.ok) throw new Error(corpo.erro || 'Falha ao enviar a imagem.');
 
@@ -1018,6 +1083,7 @@
   async function carregar({ propagar = false } = {}) {
     try {
       dados = await api('/dados');
+      mostrarApp();
       desenhar(abaAtiva());
     } catch (err) {
       if (propagar) throw err;

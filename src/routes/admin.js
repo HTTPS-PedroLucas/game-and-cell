@@ -1,15 +1,12 @@
-/** API do painel administrativo com acesso livre para ambiente de teste. */
+/** API do painel administrativo. Tudo aqui exige sessão, menos login e logout. */
 const express = require('express');
-const path = require('path');
-const fs = require('fs');
 const multer = require('multer');
 const store = require('../lib/store');
+const { autenticar, exigirLogin, definirCookie, limparCookie, registrar } = require('../lib/auth');
+const { uploadBuffer } = require('../lib/cloudinary');
 const { slugify } = require('../lib/helpers');
 
 const router = express.Router();
-
-const PASTA_UPLOAD = path.join(__dirname, '..', '..', 'public', 'uploads');
-fs.mkdirSync(PASTA_UPLOAD, { recursive: true });
 
 /* ------------------------------------------------------------------ */
 /* Upload de imagem                                                    */
@@ -17,16 +14,7 @@ fs.mkdirSync(PASTA_UPLOAD, { recursive: true });
 const TIPOS_OK = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
 
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, PASTA_UPLOAD),
-    filename: (_req, file, cb) => {
-      const ext = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/avif': '.avif' }[
-        file.mimetype
-      ];
-      const base = slugify(path.parse(file.originalname).name) || 'imagem';
-      cb(null, `${base}-${Date.now().toString(36)}${ext}`);
-    }
-  }),
+  storage: multer.memoryStorage(),
   // O navegador já reduz e converte para WebP antes de enviar (ver public/js/admin.js),
   // então 3MB aqui é folga de sobra e protege contra envio direto pela API.
   limits: { fileSize: 3 * 1024 * 1024, files: 1 },
@@ -38,13 +26,53 @@ const upload = multer({
   }
 });
 
-/* Acesso livre intencional nesta branch de teste. */
+/* ------------------------------------------------------------------ */
+/* Sessão                                                              */
+/* ------------------------------------------------------------------ */
+const tentativas = new Map();
+
+router.post('/login', async (req, res) => {
+  const ip = req.ip || 'desconhecido';
+  const agora = Date.now();
+  const recentes = (tentativas.get(ip) || []).filter((t) => agora - t < 15 * 60_000);
+  if (recentes.length >= 8) {
+    registrar('LOGIN 429', `${ip} — bloqueado por excesso de tentativas`);
+    return res.status(429).json({ erro: 'Muitas tentativas. Espere 15 minutos.' });
+  }
+
+  const { email, senha } = req.body || {};
+  if (!email || !senha) return res.status(400).json({ erro: 'Informe e-mail e senha.' });
+
+  const sessao = await autenticar(email, senha);
+  if (!sessao) {
+    recentes.push(agora);
+    tentativas.set(ip, recentes);
+    registrar('LOGIN NEGADO', `${email} — tentativa ${recentes.length} de 8`);
+    return res.status(401).json({ erro: 'E-mail ou senha incorretos.' });
+  }
+
+  tentativas.delete(ip);
+  definirCookie(req, res, sessao.token);
+  registrar('LOGIN OK', sessao.usuario.email);
+  res.json({ ok: true, usuario: sessao.usuario });
+});
+
+router.post('/logout', (req, res) => {
+  limparCookie(req, res);
+  res.json({ ok: true });
+});
+
+router.get('/me', exigirLogin, (req, res) => {
+  res.json({ usuario: { nome: req.usuario.nome, email: req.usuario.email } });
+});
+
+router.use(exigirLogin);
 
 /* ------------------------------------------------------------------ */
 /* Leitura geral                                                       */
 /* ------------------------------------------------------------------ */
-router.get('/dados', (_req, res) => {
-  const { usuarios, ...resto } = store.read();
+router.get('/dados', async (_req, res) => {
+  const { usuarios, ...resto } = await store.read({ includeLeads: true });
   res.json(resto);
 });
 
@@ -153,36 +181,32 @@ const COLECOES = {
   }
 };
 
-router.get('/:colecao', (req, res, next) => {
+router.get('/:colecao', async (req, res, next) => {
   const cfg = COLECOES[req.params.colecao];
   if (!cfg) return next();
-  res.json(store.read()[req.params.colecao]);
+  res.json(await store.listCollection(req.params.colecao));
 });
 
-router.post('/:colecao', (req, res, next) => {
+router.post('/:colecao', async (req, res, next) => {
   const nome = req.params.colecao;
   const cfg = COLECOES[nome];
   if (!cfg) return next();
 
-  const db = store.read();
+  const db = await store.read();
   const item = cfg.sanitizar(req.body || {}, db, null);
   const erro = cfg.validar(item);
   if (erro) return res.status(400).json({ erro });
 
-  const criado = store.update((d) => {
-    const novo = { id: store.nextId(d[nome]), ...item };
-    d[nome].push(novo);
-    return novo;
-  });
+  const criado = await store.createCollectionItem(nome, item);
   res.status(201).json(criado);
 });
 
-router.put('/:colecao/:id', (req, res, next) => {
+router.put('/:colecao/:id', async (req, res, next) => {
   const nome = req.params.colecao;
   const cfg = COLECOES[nome];
   if (!cfg) return next();
 
-  const db = store.read();
+  const db = await store.read();
   const id = Number(req.params.id);
   const atual = db[nome].find((i) => i.id === id);
   if (!atual) return res.status(404).json({ erro: 'Item não encontrado.' });
@@ -191,26 +215,18 @@ router.put('/:colecao/:id', (req, res, next) => {
   const erro = cfg.validar(item);
   if (erro) return res.status(400).json({ erro });
 
-  const salvo = store.update((d) => {
-    const alvo = d[nome].find((i) => i.id === id);
-    Object.assign(alvo, item);
-    return alvo;
-  });
+  const salvo = await store.updateCollectionItem(nome, id, item);
   res.json(salvo);
 });
 
-router.delete('/:colecao/:id', (req, res, next) => {
+router.delete('/:colecao/:id', async (req, res, next) => {
   const nome = req.params.colecao;
   if (!COLECOES[nome]) return next();
 
   const id = Number(req.params.id);
-  const removido = store.update((d) => {
-    const i = d[nome].findIndex((x) => x.id === id);
-    if (i < 0) return null;
-    return d[nome].splice(i, 1)[0];
-  });
+  const removido = await store.deleteCollectionItem(nome, id);
   if (!removido) return res.status(404).json({ erro: 'Item não encontrado.' });
-  res.json({ ok: true, removido });
+  res.json({ ok: true });
 });
 
 /* ------------------------------------------------------------------ */
@@ -292,49 +308,39 @@ const BLOCOS = {
   })
 };
 
-router.put('/bloco/:nome', (req, res) => {
+router.put('/bloco/:nome', async (req, res) => {
   const nome = req.params.nome;
   const transformar = BLOCOS[nome];
   if (!transformar) return res.status(404).json({ erro: 'Bloco desconhecido.' });
 
-  const salvo = store.update((d) => {
-    d[nome] = transformar(req.body || {}, d[nome]);
-    return d[nome];
-  });
+  const atual = await store.getSetting(nome);
+  if (!atual) return res.status(404).json({ erro: 'Bloco ainda não foi configurado.' });
+  const salvo = await store.saveSetting(nome, transformar(req.body || {}, atual));
   res.json(salvo);
 });
 
 /* ------------------------------------------------------------------ */
 /* Leads                                                               */
 /* ------------------------------------------------------------------ */
-router.get('/lista/leads', (req, res) => {
+router.get('/lista/leads', async (req, res) => {
   const { tipo, status } = req.query;
-  const leads = store
-    .read()
-    .leads.filter((l) => (!tipo || l.tipo === tipo) && (!status || l.status === status));
+  const leads = await store.listLeads({ tipo, status });
   res.json(leads);
 });
 
-router.patch('/lista/leads/:id', (req, res) => {
+router.patch('/lista/leads/:id', async (req, res) => {
   const id = Number(req.params.id);
   const status = ['novo', 'atendido', 'perdido'].includes(req.body.status) ? req.body.status : null;
   if (!status) return res.status(400).json({ erro: 'Status inválido.' });
 
-  const lead = store.update((d) => {
-    const alvo = d.leads.find((l) => l.id === id);
-    if (alvo) alvo.status = status;
-    return alvo;
-  });
+  const lead = await store.updateLeadStatus(id, status);
   if (!lead) return res.status(404).json({ erro: 'Lead não encontrado.' });
   res.json(lead);
 });
 
-router.delete('/lista/leads/:id', (req, res) => {
+router.delete('/lista/leads/:id', async (req, res) => {
   const id = Number(req.params.id);
-  const removido = store.update((d) => {
-    const i = d.leads.findIndex((l) => l.id === id);
-    return i < 0 ? null : d.leads.splice(i, 1)[0];
-  });
+  const removido = await store.deleteLead(id);
   if (!removido) return res.status(404).json({ erro: 'Lead não encontrado.' });
   res.json({ ok: true });
 });
@@ -342,8 +348,8 @@ router.delete('/lista/leads/:id', (req, res) => {
 /* ------------------------------------------------------------------ */
 /* Upload                                                              */
 /* ------------------------------------------------------------------ */
-router.post('/upload', (req, res) => {
-  upload.single('imagem')(req, res, (err) => {
+router.post('/upload', (req, res, next) => {
+  upload.single('imagem')(req, res, async (err) => {
     if (err) {
       const msg =
         err.code === 'LIMIT_FILE_SIZE'
@@ -352,7 +358,13 @@ router.post('/upload', (req, res) => {
       return res.status(400).json({ erro: msg });
     }
     if (!req.file) return res.status(400).json({ erro: 'Nenhuma imagem recebida.' });
-    res.status(201).json({ url: `/uploads/${req.file.filename}`, tamanho: req.file.size });
+    try {
+      const nome = slugify(req.file.originalname.replace(/\.[^.]+$/, '')) || 'imagem';
+      const resultado = await uploadBuffer(req.file.buffer, { nome });
+      res.status(201).json(resultado);
+    } catch (uploadError) {
+      next(uploadError);
+    }
   });
 });
 

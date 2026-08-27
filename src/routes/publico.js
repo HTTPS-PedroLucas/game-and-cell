@@ -25,22 +25,11 @@ function texto(valor, max = 500) {
 }
 
 function registrarLead(tipo, dados) {
-  return store.update((db) => {
-    const lead = {
-      id: store.nextId(db.leads),
-      tipo,
-      ...dados,
-      status: 'novo',
-      criadoEm: new Date().toISOString()
-    };
-    db.leads.unshift(lead);
-    if (db.leads.length > 500) db.leads.length = 500;
-    return lead;
-  });
+  return store.createLead({ tipo, ...dados, criadoEm: new Date().toISOString() });
 }
 
 /* Orçamento de assistência técnica — o único formulário longo que o briefing aprova. */
-router.post('/orcamento', throttle, (req, res) => {
+router.post('/orcamento', throttle, async (req, res) => {
   const aparelho = texto(req.body.aparelho, 120);
   const problema = texto(req.body.problema, 800);
   const nome = texto(req.body.nome, 80);
@@ -53,8 +42,8 @@ router.post('/orcamento', throttle, (req, res) => {
   if (telefone.replace(/\D/g, '').length < 10) erros.telefone = 'Informe um WhatsApp com DDD.';
   if (Object.keys(erros).length) return res.status(400).json({ erros });
 
-  const lead = registrarLead('orcamento', { aparelho, problema, nome, telefone });
-  const { config } = store.read();
+  const lead = await registrarLead('orcamento', { aparelho, problema, nome, telefone });
+  const { config } = await store.read();
 
   const mensagem = `Olá, ${config.nome}! Pedi um orçamento pelo site.
 Aparelho: ${aparelho}
@@ -70,8 +59,8 @@ Meu nome: ${nome}`;
 });
 
 /* Inscrição em torneio */
-router.post('/inscricao', throttle, (req, res) => {
-  const db = store.read();
+router.post('/inscricao', throttle, async (req, res) => {
+  const db = await store.read({ includeLeads: true });
   const torneio = db.torneios.find((t) => t.id === Number(req.body.torneioId));
 
   if (!torneio || torneio.status !== 'aberto') {
@@ -88,7 +77,7 @@ router.post('/inscricao', throttle, (req, res) => {
   if (Object.keys(erros).length) return res.status(400).json({ erros });
 
   const inscritos = db.leads.filter((l) => l.tipo === 'inscricao' && l.torneioId === torneio.id).length;
-  const lead = registrarLead('inscricao', {
+  const lead = await registrarLead('inscricao', {
     torneioId: torneio.id,
     torneioNome: torneio.nome,
     nome,

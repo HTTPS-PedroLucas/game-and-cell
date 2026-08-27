@@ -60,29 +60,30 @@ const html = (res, markup) => res.type('html').send(markup);
 /* ------------------------------------------------------------------ */
 /* Páginas públicas                                                    */
 /* ------------------------------------------------------------------ */
-app.get('/', (_req, res) => html(res, home(store.read())));
+app.get('/', async (_req, res) => html(res, home(await store.read())));
 
-app.get('/vitrine', (req, res) =>
+app.get('/vitrine', async (req, res) =>
   html(
     res,
-    vitrine(store.read(), {
+    vitrine(await store.read(), {
       categoria: String(req.query.categoria || ''),
       marca: String(req.query.marca || '')
     })
   )
 );
 
-app.get('/assistencia-tecnica', (_req, res) => html(res, assistencia(store.read())));
-app.get('/pagamento', (_req, res) => html(res, pagamentoPagina(store.read())));
-app.get('/garantia', (_req, res) => html(res, garantiaPagina(store.read())));
-app.get('/entrega', (_req, res) => html(res, entregaPagina(store.read())));
-app.get('/a-loja', (_req, res) => html(res, lojaPagina(store.read())));
-app.get('/torneios', (_req, res) => html(res, torneiosPagina(store.read())));
+app.get('/assistencia-tecnica', async (_req, res) => html(res, assistencia(await store.read())));
+app.get('/pagamento', async (_req, res) => html(res, pagamentoPagina(await store.read())));
+app.get('/garantia', async (_req, res) => html(res, garantiaPagina(await store.read())));
+app.get('/entrega', async (_req, res) => html(res, entregaPagina(await store.read())));
+app.get('/a-loja', async (_req, res) => html(res, lojaPagina(await store.read())));
+app.get('/torneios', async (_req, res) => html(res, torneiosPagina(await store.read())));
 
 /* Painel — página única, protegida pela API. noindex por cabeçalho e meta. */
-app.get('/admin', (_req, res) => {
+app.get('/admin', async (_req, res) => {
   res.setHeader('X-Robots-Tag', 'noindex, nofollow');
-  html(res, paginaAdmin(store.read().config));
+  res.setHeader('Cache-Control', 'no-store');
+  html(res, paginaAdmin((await store.read()).config));
 });
 
 /* ------------------------------------------------------------------ */
@@ -90,6 +91,11 @@ app.get('/admin', (_req, res) => {
 /* ------------------------------------------------------------------ */
 app.use('/api', publico);
 app.use('/api/admin', admin);
+
+app.get('/health', async (_req, res) => {
+  await require('./lib/db').query('SELECT 1');
+  res.json({ ok: true });
+});
 
 /* ------------------------------------------------------------------ */
 /* SEO                                                                 */
@@ -108,8 +114,8 @@ Sitemap: ${baseUrl(req)}/sitemap.xml
 `);
 });
 
-app.get('/sitemap.xml', (req, res) => {
-  const db = store.read();
+app.get('/sitemap.xml', async (req, res) => {
+  const db = await store.read();
   const base = baseUrl(req);
   const rotas = [
     { url: '/', prioridade: '1.0' },
@@ -140,11 +146,11 @@ ${rotas
 /* ------------------------------------------------------------------ */
 /* 404 e erros                                                         */
 /* ------------------------------------------------------------------ */
-app.use((req, res) => {
+app.use(async (req, res) => {
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ erro: 'Rota não encontrada.' });
   }
-  const { config } = store.read();
+  const { config } = await store.read();
   res.status(404).type('html').send(
     layout({
       titulo: `Página não encontrada | ${config.nome}`,
@@ -172,14 +178,23 @@ app.use((err, req, res, _next) => {
   res.status(500).type('html').send('<h1>Erro interno</h1><p><a href="/">Voltar ao início</a></p>');
 });
 
-app.listen(PORTA, () => {
-  const db = store.read();
-  console.log(`\n  ${db.config.nome} — site no ar`);
-  console.log(`  Site .......... http://localhost:${PORTA}`);
-  console.log(`  Painel ........ http://localhost:${PORTA}/admin`);
-  if (!db.usuarios.length) {
-    console.log(`\n  Nenhum administrador cadastrado ainda. Rode:  npm run seed\n`);
-  } else {
-    console.log('');
-  }
-});
+async function start() {
+  const banco = await store.read();
+  const admins = await store.listAdmins();
+  return app.listen(PORTA, () => {
+    console.log(`\n  ${banco.config.nome} — site no ar`);
+    console.log(`  Site .......... http://localhost:${PORTA}`);
+    console.log(`  Painel ........ http://localhost:${PORTA}/admin`);
+    if (!admins.length) console.log(`\n  Nenhum administrador cadastrado. Rode: npm run seed\n`);
+    else console.log('');
+  });
+}
+
+if (require.main === module) {
+  start().catch((err) => {
+    console.error(`\n  Falha ao iniciar: ${err.message}\n`);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = { app, start };

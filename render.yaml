@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: game-and-cell
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm run db:migrate && npm start
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_SSL
+        value: "true"
+      - key: DATABASE_POOL_MAX
+        value: "5"
+      - key: CLOUDINARY_FOLDER
+        value: game-and-cell
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SITE_URL
+        sync: false
+      - key: CLOUDINARY_URL
+        sync: false

@@ -59,6 +59,34 @@
 .admin .btn--contorno:hover { background: var(--surface-2); border-color: #9aaa94; }
 .admin :focus-visible { outline-color: #66a71f; }
 
+/* ---------- Login ---------- */
+.login {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 1rem;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(145, 204, 58, 0.2), transparent 34%),
+    linear-gradient(150deg, #111811, #1b281a);
+}
+
+.login__caixa {
+  display: grid;
+  gap: 1rem;
+  width: min(100%, 25rem);
+  padding: clamp(1.4rem, 5vw, 2rem);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--admin-shadow-lg);
+}
+
+.login__marca { display: grid; gap: 0.7rem; margin-bottom: 0.35rem; text-align: center; }
+.login__marca img { width: 154px; height: auto; margin-inline: auto; }
+.login__marca div { display: grid; gap: 0.2rem; }
+.login__marca strong { font-size: 1.1rem; }
+.login__marca span { color: var(--text-muted); font-size: 0.86rem; }
+
 /* ---------- Estrutura ---------- */
 .admin-app {
   display: grid;

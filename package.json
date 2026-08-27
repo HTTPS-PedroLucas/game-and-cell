@@ -7,15 +7,24 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "seed": "node src/lib/seed.js"
+    "db:migrate": "node scripts/migrate.js --seed-defaults",
+    "db:import": "node scripts/import-json.js",
+    "seed": "node src/lib/seed.js",
+    "test": "node --test"
   },
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.10.1",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "multer": "^2.2.0"
+    "multer": "^2.2.0",
+    "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "pg-mem": "^3.0.14",
+    "supertest": "^7.2.2"
   }
 }

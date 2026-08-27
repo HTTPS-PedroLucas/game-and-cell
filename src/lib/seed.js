@@ -14,6 +14,7 @@
 require('dotenv').config();
 
 const readline = require('readline');
+const database = require('./db');
 const store = require('./store');
 const { criarUsuario, listarUsuarios, removerUsuario, redefinirSenha } = require('./auth');
 
@@ -65,8 +66,8 @@ function perguntaSenha(rl, texto) {
 /* ------------------------------------------------------------------ */
 /* Ações                                                               */
 /* ------------------------------------------------------------------ */
-function mostrarLista() {
-  const usuarios = listarUsuarios();
+async function mostrarLista() {
+  const usuarios = await listarUsuarios();
   if (!usuarios.length) {
     console.log('\n  Nenhum administrador cadastrado. Rode `npm run seed` para criar o primeiro.\n');
     return;
@@ -79,14 +80,14 @@ function mostrarLista() {
   console.log('');
 }
 
-function remover(email) {
+async function remover(email) {
   if (typeof email !== 'string' || !email) {
     throw new Error('Informe o e-mail: npm run seed -- --remover alguem@loja.com');
   }
-  if (listarUsuarios().length <= 1) {
+  if ((await listarUsuarios()).length <= 1) {
     throw new Error('Esse é o único administrador. Crie outro antes de remover este, ou você perde o acesso ao painel.');
   }
-  const removido = removerUsuario(email);
+  const removido = await removerUsuario(email);
   if (!removido) throw new Error(`Não achei nenhum administrador com o e-mail ${email}.`);
   console.log(`\n  ${removido.email} não tem mais acesso ao painel.\n`);
 }
@@ -95,7 +96,7 @@ async function trocarSenha(rl, email) {
   if (typeof email !== 'string' || !email) {
     throw new Error('Informe o e-mail: npm run seed -- --senha voce@loja.com');
   }
-  if (!listarUsuarios().some((u) => u.email === email.trim().toLowerCase())) {
+  if (!(await listarUsuarios()).some((u) => u.email === email.trim().toLowerCase())) {
     throw new Error(`Não achei nenhum administrador com o e-mail ${email}. Veja a lista com: npm run seed -- --listar`);
   }
 
@@ -127,8 +128,8 @@ async function criar({ email, senha, nome }) {
   let rl = null;
 
   try {
-    if (opcao('listar')) return mostrarLista();
-    if (opcao('remover') !== null) return remover(opcao('remover'));
+    if (opcao('listar')) return await mostrarLista();
+    if (opcao('remover') !== null) return await remover(opcao('remover'));
 
     if (opcao('senha') !== null) {
       if (!process.stdin.isTTY) {
@@ -150,8 +151,7 @@ async function criar({ email, senha, nome }) {
     const senhaEnv = process.env.ADMIN_SENHA;
 
     if (emailEnv && senhaEnv) {
-      const db = store.read();
-      if (db.usuarios.some((u) => u.email === emailEnv.trim().toLowerCase())) {
+      if (await store.findAdminByEmail(emailEnv.trim().toLowerCase())) {
         console.log(`\n  ${emailEnv} já tem acesso. Nada a fazer.\n`);
         return;
       }
@@ -167,11 +167,11 @@ async function criar({ email, senha, nome }) {
     }
 
     rl = criarLeitor();
-    const db = store.read();
+    const usuarios = await store.listAdmins();
 
-    if (db.usuarios.length) {
-      console.log(`\n  Já existe ${db.usuarios.length} administrador(es):`);
-      db.usuarios.forEach((u) => console.log(`    - ${u.email}`));
+    if (usuarios.length) {
+      console.log(`\n  Já existe ${usuarios.length} administrador(es):`);
+      usuarios.forEach((u) => console.log(`    - ${u.email}`));
       const seguir = await pergunta(rl, '\n  Criar mais um assim mesmo? (s/N) ');
       if (!/^s/i.test(seguir)) {
         console.log('  Cancelado.\n');
@@ -193,5 +193,6 @@ async function criar({ email, senha, nome }) {
     process.exitCode = 1;
   } finally {
     if (rl) rl.close();
+    await database.close();
   }
 })();

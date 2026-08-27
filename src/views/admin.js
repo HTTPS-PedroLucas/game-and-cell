@@ -33,8 +33,28 @@ function paginaAdmin(config) {
 </head>
 <body class="admin">
 
+<!-- ---------------- Login ---------------- -->
+<div class="login" id="telaLogin" hidden>
+  <form class="login__caixa" id="formLogin" novalidate>
+    <div class="login__marca">
+      <img src="/img/logo-pequeno.webp" width="360" height="166" alt="${e(config.nome)}">
+      <div><strong>Painel do administrador</strong><span>Entre para gerenciar a loja</span></div>
+    </div>
+    <div class="campo">
+      <label for="loginEmail">E-mail</label>
+      <input type="email" id="loginEmail" name="email" required autocomplete="username" autocapitalize="none">
+    </div>
+    <div class="campo">
+      <label for="loginSenha">Senha</label>
+      <input type="password" id="loginSenha" name="senha" required autocomplete="current-password">
+    </div>
+    <button class="btn btn--primario btn--bloco" type="submit">Entrar</button>
+    <div id="loginAviso" role="alert" aria-live="assertive"></div>
+  </form>
+</div>
+
 <!-- ---------------- Painel ---------------- -->
-<div class="admin-app" id="app">
+<div class="admin-app" id="app" hidden>
   <aside class="admin-sidebar">
     <div class="admin-sidebar__marca">
       <img src="/img/logo-pequeno.webp" width="360" height="166" alt="${e(config.nome)}">
@@ -68,6 +88,7 @@ function paginaAdmin(config) {
       </div>
       <div class="admin-topo__acoes">
         <a class="btn btn--contorno btn--sm" href="/" target="_blank" rel="noopener">Ver o site</a>
+        <button class="btn btn--contorno btn--sm" type="button" id="btnSair">Sair</button>
       </div>
     </header>
 

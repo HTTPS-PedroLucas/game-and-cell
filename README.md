@@ -15,10 +15,17 @@ conversa já dizendo qual produto ou serviço interessa.
 npm install
 ```
 
-Copie `.env.example` para `.env` e defina o `JWT_SECRET` (32+ caracteres). Para gerar um:
+Crie um PostgreSQL (local ou Supabase), copie `.env.example` para `.env` e preencha
+`DATABASE_URL`, `JWT_SECRET` e as credenciais do Cloudinary. Para gerar o segredo da sessão:
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+Crie as tabelas e importe o conteúdo inicial:
+
+```bash
+npm run db:migrate
 ```
 
 Crie o administrador do painel:
@@ -38,6 +45,8 @@ Outras operações:
 
 | Comando | O que faz |
 |---|---|
+| `npm run db:migrate` | aplica migrações pendentes e cria o conteúdo inicial se o banco estiver vazio |
+| `npm run db:import -- caminho/db.json` | importa um `db.json` antigo e envia uploads locais existentes ao Cloudinary |
 | `npm run seed -- --listar` | mostra quem tem acesso ao painel |
 | `npm run seed -- --senha email@loja.com` | troca a senha de quem já existe |
 | `npm run seed -- --remover email@loja.com` | tira o acesso de alguém |
@@ -103,8 +112,9 @@ O painel recusa salvar coisas que o briefing marca como erro:
 ### Imagens
 
 Antes de enviar, o navegador reduz para 1200px no maior lado e converte para **WebP** via
-canvas. Isso atende o requisito crítico de velocidade em 4G sem exigir dependência nativa no
-servidor. O servidor aceita apenas JPG/PNG/WebP/AVIF, no máximo 3MB.
+canvas. O servidor aceita apenas JPG/PNG/WebP/AVIF, no máximo 3MB, mantém o arquivo apenas em
+memória durante a requisição e o envia ao Cloudinary. A URL HTTPS retornada fica no PostgreSQL;
+nada depende do disco efêmero do Render.
 
 > `sharp` foi testado e descartado: nesta máquina o Controlo de Aplicações do Windows bloqueia
 > o binário nativo (`ERR_DLOPEN_FAILED`). O canvas do navegador resolve sem dependência nativa.
@@ -118,10 +128,11 @@ e "velocidade" como CRÍTICOS, e SEO local como ALTO. Uma SPA React entregaria u
 e um HTML vazio para o Google. Aqui produto, preço e endereço já vêm no HTML. O JavaScript do
 site público é um arquivo só, com menu, simulador, animações e os dois formulários.
 
-**Dados em JSON com escrita atômica** (`data/db.json`). O catálogo de uma loja de bairro tem
-centenas de itens, não milhões — um banco relacional só adicionaria dependência. A escrita usa
-arquivo temporário + `rename`, e o cache em memória recarrega sozinho quando o arquivo muda
-fora do processo (é o caso do `npm run seed` com o servidor no ar).
+**PostgreSQL com tabelas relacionais nas entidades principais.** Administradores, categorias,
+marcas, produtos, serviços, torneios, equipe, depoimentos e leads têm tabelas próprias. Blocos
+editoriais de formato variável (pagamento, garantia, entrega e textos institucionais) usam
+JSONB na tabela `settings`. Isso preserva a simplicidade do MVP e permite evoluir o catálogo
+para várias lojas sem depender do sistema de arquivos.
 
 **Dados estruturados** de `ElectronicsStore` em todas as páginas, `ItemList`/`Product` na
 vitrine, `Service` na assistência e `Event` nos torneios.
@@ -233,12 +244,9 @@ formulários, ambos onde geram dado útil); texto institucional vazio; fotos de 
 
 ## Antes de publicar
 
-Existe um login de demonstração criado durante o desenvolvimento: `admin@gamecell.com.br`.
-Crie o seu com `npm run seed` e apague o de demonstração:
-
-```bash
-npm run seed -- --remover admin@gamecell.com.br
-```
+Não existe login padrão no código. Crie o primeiro administrador com `npm run seed` ou use
+temporariamente `ADMIN_EMAIL`, `ADMIN_SENHA` e `ADMIN_NOME` no primeiro `npm run db:migrate`.
+Remova `ADMIN_SENHA` do ambiente depois da criação.
 
 O conteúdo de partida veio do briefing como **exemplo**. Preços, prazos, taxas e bairros
 precisam ser conferidos item por item no painel. As 8 perguntas que o briefing manda levar para
@@ -259,7 +267,7 @@ de imagens seria "jogar fora o melhor ativo" da marca.
 ```
 src/
   server.js          rotas, SEO, 404
-  lib/               store, helpers, auth, seed, conteúdo inicial
+  lib/               PostgreSQL, Cloudinary, helpers, auth, seed, conteúdo inicial
   routes/            publico.js (orçamento, inscrição) e admin.js (API do painel)
   views/             templates de cada página + layout, componentes e ícones
 public/
@@ -268,6 +276,10 @@ public/
   js/site.js         menu, animações, simulador, formulários
   js/admin.js        painel
   img/               logo e elementos oficiais da marca em WebP
-  uploads/           imagens enviadas pelo painel
-data/db.json         conteúdo do site (criado no primeiro boot)
+migrations/          evolução versionada do schema PostgreSQL
+scripts/             migração do schema e importação do JSON legado
+render.yaml          Blueprint do Web Service gratuito
 ```
+
+O passo a passo de produção, as variáveis e os limites dos planos gratuitos estão em
+[`docs/DEPLOY-GRATUITO.md`](docs/DEPLOY-GRATUITO.md).

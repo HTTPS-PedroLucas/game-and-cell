@@ -1,5 +1,11 @@
 # Guia: reconstruir o painel administrativo da Game & Cell
 
+> **Documento histórico.** Este guia descreve o contrato anterior baseado em `data/db.json`
+> no commit `fe6ea39`. A versão atual usa PostgreSQL e Cloudinary. Para manutenção e deploy,
+> consulte [`DEPLOY-GRATUITO.md`](DEPLOY-GRATUITO.md), `migrations/001_initial.sql` e
+> `src/lib/store.js`. As regras de interface e validação abaixo continuam úteis; as instruções
+> de persistência local não devem ser reaplicadas.
+
 Especificação para reescrever a área `/admin` do zero sem quebrar o site público.
 Extraído do código em execução (commit `fe6ea39`), não de memória.
 

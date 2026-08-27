@@ -16,48 +16,36 @@ function segredo() {
 }
 
 async function criarUsuario(email, senha, nome = 'Administrador') {
-  const db = store.read();
   const normalizado = String(email).trim().toLowerCase();
-  if (db.usuarios.some((u) => u.email === normalizado)) {
+  if (await store.findAdminByEmail(normalizado)) {
     throw new Error('Já existe um usuário com esse e-mail.');
   }
-  const usuario = {
-    id: store.nextId(db.usuarios),
+  const usuario = await store.createAdmin({
     email: normalizado,
     nome,
-    senhaHash: await bcrypt.hash(String(senha), 12),
-    criadoEm: new Date().toISOString()
-  };
-  store.update((d) => d.usuarios.push(usuario));
+    senhaHash: await bcrypt.hash(String(senha), 12)
+  });
   return { id: usuario.id, email: usuario.email, nome: usuario.nome };
 }
 
-function listarUsuarios() {
-  return store.read().usuarios.map((u) => ({ id: u.id, email: u.email, nome: u.nome, criadoEm: u.criadoEm }));
+async function listarUsuarios() {
+  return (await store.listAdmins()).map((u) => ({ id: u.id, email: u.email, nome: u.nome, criadoEm: u.criadoEm }));
 }
 
 async function redefinirSenha(email, novaSenha) {
   const normalizado = String(email).trim().toLowerCase();
   const hash = await bcrypt.hash(String(novaSenha), 12);
-  return store.update((d) => {
-    const usuario = d.usuarios.find((u) => u.email === normalizado);
-    if (!usuario) return null;
-    usuario.senhaHash = hash;
-    return { id: usuario.id, email: usuario.email, nome: usuario.nome };
-  });
+  const usuario = await store.updateAdminPassword(normalizado, hash);
+  return usuario ? { id: usuario.id, email: usuario.email, nome: usuario.nome } : null;
 }
 
-function removerUsuario(email) {
+async function removerUsuario(email) {
   const normalizado = String(email).trim().toLowerCase();
-  return store.update((d) => {
-    const i = d.usuarios.findIndex((u) => u.email === normalizado);
-    return i < 0 ? null : d.usuarios.splice(i, 1)[0];
-  });
+  return store.deleteAdmin(normalizado);
 }
 
 async function autenticar(email, senha) {
-  const db = store.read();
-  const usuario = db.usuarios.find((u) => u.email === String(email).trim().toLowerCase());
+  const usuario = await store.findAdminByEmail(String(email).trim().toLowerCase());
   // Compara mesmo sem usuário para não vazar quais e-mails existem pelo tempo de resposta.
   const hash = usuario ? usuario.senhaHash : '$2a$12$invalidoinvalidoinvalidoinvalidoinvalidoinvalidoinvalid';
   const confere = await bcrypt.compare(String(senha), hash);
@@ -76,7 +64,7 @@ function registrar(evento, detalhe) {
 }
 
 /** Bloqueia rotas do painel. Responde 401 em JSON — o front volta para o login. */
-function exigirLogin(req, res, next) {
+async function exigirLogin(req, res, next) {
   const token = req.cookies?.[COOKIE];
 
   if (!token) {
@@ -87,12 +75,18 @@ function exigirLogin(req, res, next) {
 
   try {
     req.usuario = jwt.verify(token, segredo());
-    next();
   } catch (err) {
     limparCookie(req, res);
     registrar('BLOQUEADO', `${req.method} ${req.originalUrl} — cookie presente mas inválido (${err.message})`);
     return res.status(401).json({ erro: 'Sessão inválida. Faça login novamente.' });
   }
+
+  const usuarioAtual = await store.findAdminById(req.usuario.sub);
+  if (!usuarioAtual) {
+    limparCookie(req, res);
+    return res.status(401).json({ erro: 'Este administrador não tem mais acesso.' });
+  }
+  next();
 }
 
 function opcoesCookie(req) {
