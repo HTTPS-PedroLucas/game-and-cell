@@ -70,6 +70,13 @@
     linear-gradient(150deg, #111811, #1b281a);
 }
 
+/* O atributo HTML hidden deve prevalecer sobre os layouts do login e app.
+   Sem esta regra, display:grid mantém as duas telas visíveis após o login. */
+.login[hidden],
+.admin-app[hidden] {
+  display: none !important;
+}
+
 .login__caixa {
   display: grid;
   gap: 1rem;
