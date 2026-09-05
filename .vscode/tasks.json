@@ -1,0 +1,46 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Iniciar o site",
+      "type": "npm",
+      "script": "dev:local",
+      "isBackground": true,
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "problemMatcher": {
+        "owner": "game-and-cell",
+        "pattern": {
+          "regexp": "^\\s*Falha ao iniciar: (.*)$",
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^\\s*(Modo local|Preview)",
+          "endsPattern": "Site \\.+ https?://"
+        }
+      },
+      "detail": "Sobe o site com banco local persistente em http://localhost:3000"
+    },
+    {
+      "label": "Rodar os testes",
+      "type": "npm",
+      "script": "test",
+      "group": { "kind": "test", "isDefault": true },
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "detail": "Executa a suíte automatizada"
+    },
+    {
+      "label": "Recomeçar do zero",
+      "type": "shell",
+      "command": "node",
+      "args": ["-e", "require('fs').rmSync('data/dev-local.json',{force:true});console.log('Banco local apagado. O proximo inicio recria o conteudo inicial.')"],
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "detail": "Apaga data/dev-local.json e volta ao conteúdo inicial do briefing"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Iniciar o site (modo local)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/dev-local.js",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"],
+      "serverReadyAction": {
+        "pattern": "Site \\.+ (https?://\\S+)",
+        "uriFormat": "%s",
+        "action": "openExternally"
+      }
+    },
+    {
+      "name": "Iniciar com recarga automática",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/dev-local.js",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "runtimeArgs": ["--watch"],
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Rodar os testes",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "test"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ]
+}

@@ -10,7 +10,9 @@
     "db:migrate": "node scripts/migrate.js --seed-defaults",
     "db:import": "node scripts/import-json.js",
     "seed": "node src/lib/seed.js",
-    "test": "node --test"
+    "test": "node --test",
+    "dev:local": "node scripts/dev-local.js",
+    "dev:local:watch": "node --watch scripts/dev-local.js"
   },
   "license": "ISC",
   "dependencies": {

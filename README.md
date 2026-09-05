@@ -66,6 +66,41 @@ Para desenvolvimento com recarga automática: `npm run dev`.
 
 ---
 
+## Rodar localmente, sem Supabase nem Cloudinary
+
+Para desenvolver e demonstrar sem depender de serviço externo:
+
+```bash
+npm run dev:local
+```
+
+Sobe o site inteiro em `http://localhost:3000` usando um PostgreSQL em memória
+(`pg-mem`) com o mesmo schema de produção. As imagens enviadas pelo painel vão
+para `public/uploads` em vez do Cloudinary.
+
+**Os dados persistem.** Ao encerrar com `Ctrl+C` — e automaticamente a cada 30
+segundos — o banco é gravado em `data/dev-local.json` e recarregado no próximo
+início. Dá para cadastrar produtos, receber pedidos e continuar de onde parou.
+
+O login do painel sai de `ADMIN_EMAIL` e `ADMIN_SENHA` no `.env`. Sem eles,
+usa `admin@local` / `gamecell-local`. Para recomeçar do conteúdo inicial,
+apague `data/dev-local.json`.
+
+### No VS Code
+
+| Atalho | O que faz |
+|---|---|
+| `Ctrl+Shift+B` | Inicia o site (tarefa padrão) |
+| `F5` | Inicia com o depurador, com pontos de parada |
+| `Ctrl+Shift+P` → *Run Task* | Rodar os testes, ou recomeçar do zero |
+
+Encerre com `Ctrl+C` no terminal integrado para o banco ser salvo.
+
+> Os ids são reatribuídos a cada restauração — o conteúdo é o mesmo, mas a
+> numeração muda. Não afeta o site, que usa slug nas URLs públicas.
+
+---
+
 ## Páginas
 
 | Rota | O que resolve | Prioridade no briefing |

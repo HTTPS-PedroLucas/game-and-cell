@@ -4,3 +4,4 @@ data/db.json
 public/uploads/*
 !public/uploads/.gitkeep
 *.tmp
+data/dev-local.json
